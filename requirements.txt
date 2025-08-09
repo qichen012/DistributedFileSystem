@@ -1,0 +1,14 @@
+# FastAPI 框架
+fastapi==0.115.0
+
+# FastAPI 推荐的 ASGI 服务器
+uvicorn[standard]==0.30.6
+
+# MySQL 数据库驱动
+pymysql==1.1.1
+
+# SQLAlchemy ORM（方便后面连接和操作数据库）
+sqlalchemy==2.0.34
+
+# 方便使用 .env 环境变量
+python-dotenv==1.0.1
