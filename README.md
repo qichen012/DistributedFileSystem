@@ -3,6 +3,35 @@
 一个简洁高效的分布式文件存储系统，支持文件切块、多节点冗余存储、容错恢复与客户端上传下载接口。该项目采用 Python + FastAPI + MySQL + Docker，结合分布式系统设计理念，适合系统学习、项目展示与工程实践。
 
 ---
+部署流程
+
+- pip install -r requirements.txt #安装依赖
+
+- docker-compose up -d #将docker-compose.yml在docker中进行部署容器的操作
+
+- 或者直接拉取 MySQL 镜像并运行容器
+docker run -d \
+  --name dfs-mysql \
+  -e MYSQL_ROOT_PASSWORD=123456 \
+  -e MYSQL_DATABASE=test0 \
+  -p 3306:3306 \
+  mysql:8.0
+
+docker exec -it dfs-mysql \
+  mysql -uroot -p123456 test0 < docs/schema.sql  #创建项目所需表
+
+
+- uvicorn metadata_server.app:app --reload #启动本地服务节点
+
+- python3 -m storage_nodes.node 9001 #(默认是启动9001端口，其他端口同理)
+
+- python3 -m storage_nodes.node 9002 #启动多个存储节点（按需执行）
+
+‘’‘
+
+- python3 -m client.cli upload tests/test.txt #上传test.txt文件,不同的chunk都会保存在./data文件夹下
+
+- python3 -m client.cli download tests/storage_data/download_data.txt --file_id 1 #get属于file_id = 1 的chunk部分并合并为一个txt文件
 
 ## 🧭 项目背景
 
@@ -108,27 +137,10 @@ DistributedFileSystem/
 │
 ├── docs/                            # 文档与设计
 │   ├── schema.sql                   # MySQL 表结构定义
+│   ├── week2_summary.md             # 第 2 周总结文档
 │   ├── week1_summary.md             # 第 1 周总结文档
-│   └── architecture.drawio          # 架构图
+│   └── architecture.drawio          # 架构图（你可以用 Draw.io 或 Markdown 画）
 │
 ├── requirements.txt                 # Python 依赖包列表
 ├── README.md                        # 项目说明文件
 └── .gitignore                       # 忽略文件配置
-
-
-
-
-## 第一周项目架构图
-
-```mermaid
-flowchart LR
-    A[Client\n(浏览器 / Postman / curl)]:::done -->|HTTP 请求\n(POST / GET)| B[FastAPI Web Server\n(metadata_server/app.py)]:::done
-    B -->|函数调用| C[数据访问层\n(models / crud)]:::done
-    C -->|SQL 查询| D[(MySQL 数据库容器)]:::done
-
-    subgraph Docker 容器
-        D
-    end
-
-    classDef done fill:#9f6,stroke:#333,stroke-width:1px;
-    classDef pending fill:#ccc,stroke:#333,stroke-width:1px;
