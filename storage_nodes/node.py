@@ -6,7 +6,9 @@ app = FastAPI()
 STORAGE_DIR = "./data"
 os.makedirs(STORAGE_DIR, exist_ok= True)
 
-
+@app.get("/health")
+def health_check():
+    return{"status" : "ok"}
 
 @app.post("/store_chunk")
 async def store_chunk(file_id: int = Form(...), chunk_index: int= Form(...), chunk: UploadFile= File(...)):
