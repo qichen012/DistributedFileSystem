@@ -40,29 +40,41 @@ def upload_chunk(file_id:int, chunk_index:int, chunk_data:bytes, node_url:str):
     resp = requests.post(f"{node_url}/store_chunk",data= data,files=files)
     return resp.json()
 
-def upload_file(filepath):
+def upload_file(filepath, replica= 2):
     filesize = os.path.getsize(filepath)
     file_name = os.path.basename(filepath)
     file_id = register_file(file_name, filesize)
     for index, chunk in split_file(filepath):
-        node_url = get_next_node()
-        result = upload_chunk(file_id, index,chunk,node_url)
+        for i in range(replica):
+            node_url = get_next_node()
+            result = upload_chunk(file_id, index,chunk,node_url)
+            register_chunk(file_id, index, node_url)
         print(f"Uploading chunk {index} of file id {file_id}",result)
-        register_chunk(file_id, index, node_url)
 
 def download_file(file_id: int,save_path:str):
     resp = requests.get("http://localhost:8000/file/get_chunks", params={"file_id": file_id})
     chunks_info = resp.json()
     chunks_info.sort(key= lambda x: x["chunk_index"])
-
+    length = len(chunks_info)
     with open(save_path, "wb") as f:
-        for chunk in chunks_info:
-            resp = requests.get(
-                f"{chunk['node_address']}/get_chunk/",
-                params = {"file_id": file_id, "chunk_index": chunk["chunk_index"]}
-            )
-            resp.raise_for_status()
-            f.write(resp.content)
+        for j in range(length):
+            list1 = (i for i, x in enumerate(chunks_info) if x["chunk_index"] == j)
+            for num in list1:
+                success = False
+                try:
+                    resp = requests.get(
+                        f"{chunks_info[num]['node_address']}/get_chunk/",
+                        params = {"file_id": file_id, "chunk_index": chunks_info[num]["chunk_index"]}
+                    )
+                    resp.raise_for_status()
+                    f.write(resp.content)
+                    print(f"successfully download file {file_id} chunk {chunks_info[num]['chunk_index']}")
+                    success = True
+                    break
+                except Exception:
+                    continue
+            if not success:
+                raise Exception(f"Chunk {chunks_info[num]['chunk_index']}下载失败")
     print(f"File {file_id} download and saved as {save_path}")
 
 def upload_chunk_with_retry(file_id, chunk_index, chunk_data, node_url, retries = 1):
