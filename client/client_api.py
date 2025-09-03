@@ -40,7 +40,7 @@ def upload_chunk(file_id:int, chunk_index:int, chunk_data:bytes, node_url:str):
     resp = requests.post(f"{node_url}/store_chunk",data= data,files=files)
     return resp.json()
 
-def upload_file(filepath, replica= 2):
+def upload_file(filepath, replica: int):
     filesize = os.path.getsize(filepath)
     file_name = os.path.basename(filepath)
     file_id = register_file(file_name, filesize)
@@ -87,3 +87,11 @@ def upload_chunk_with_retry(file_id, chunk_index, chunk_data, node_url, retries 
             log_error(f"Attempt {attempt +1} failed: {e}")
             if attempt == retries:
                 raise
+
+def delete_file(file_id : int):
+    url = f"http://localhost:8000/file/delete_file/{file_id}"
+    resp = requests.delete(url)
+    if resp.status_code == 200:
+        print(f"文件 {file_id} 删除成功")
+    else:
+        print(f"删除失败 {resp.text}")

@@ -31,8 +31,9 @@ docker exec -it dfs-mysql \
 
 - python3 -m client.cli upload tests/test.txt #上传test.txt文件,不同的chunk都会保存在./data文件夹下
 
-- python3 -m client.cli download tests/storage_data/download_data.txt --file_id 1 #get属于file_id = 1 的chunk部分并合并为一个txt文件
+- python3 -m client.cli download 1 tests/storage_data/download_data.txt  #get属于file_id = 1 的chunk部分并合并为一个txt文件
 
+- python3 -m client.cli delete 1 #删除file_id 为1的文件，并在数据库中删除其file和chunks
 ## 🧭 项目背景
 
 本项目旨在模拟一个简化版的分布式文件系统，实现文件上传、分块存储、多副本冗余、元数据管理和存储节点管理等核心功能，重点在于架构设计、模块化实现和系统性训练。
@@ -51,6 +52,14 @@ docker exec -it dfs-mysql \
 - ✅ Docker Compose 一键部署（支持本地集群模拟）
 
 ---
+## 功能特性
+
+- ✅ Week 1: 文件切块，元数据存储
+- ✅ Week 2: 存储节点服务，自动注册，调度器动态获取节点
+- ✅ Week 3: 健康检查，多副本存储，容错下载
+- ✅ Week 4: 可配置副本数，文件删除，节点下线检测
+- 🔄 Week 5: 计划实现副本恢复、负载均衡 ...
+
 
 ## 🛠️ 技术栈
 

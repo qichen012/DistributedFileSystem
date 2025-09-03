@@ -19,3 +19,17 @@ async def register_node(address: str):
         return {"status": "ok","node_id":node.id}
     finally:
         session.close()
+
+@router.post("/unregister_storage_node")
+async def unregister_node(address: str):
+    session = SessionLocal()
+    try:
+        node = session.query(StorageNode).filter(StorageNode.address_sn == address).first()
+        if node:
+            session.delete(node)
+            session.commit()
+            return {"status": "unregistered"}
+        else:
+            return {"status": "not found"}
+    finally:
+        session.close()     

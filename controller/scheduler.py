@@ -10,7 +10,7 @@ def get_node_address():
     finally:
         session.close()
 
-def get_health_nodes():
+def get_health_nodes(replicas = 2):
     nodes = get_node_address()
     healthy_nodes = []
     for node in nodes:
@@ -20,7 +20,10 @@ def get_health_nodes():
                 healthy_nodes.append(node)
         except Exception:
             continue
-    return healthy_nodes
+    if len(healthy_nodes) < replicas:
+        raise Exception("可用节点不足")
+    else:
+        return healthy_nodes
 
 STORAGE_NODES = get_health_nodes()
 

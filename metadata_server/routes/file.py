@@ -1,9 +1,12 @@
 from fastapi import FastAPI, APIRouter,HTTPException,Response
 from pydantic import BaseModel
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
 from metadata_server.db import engine
 from metadata_server.models import File,Chunk
 import os
+from typing import Generator
+from fastapi import Depends
+import requests
 
 SessionLocal = sessionmaker(bind= engine)
 
@@ -17,6 +20,17 @@ class FileDownloadRequest(BaseModel):
     file_id: int
 
 STORAGE_DIR = "./data"
+
+def get_db() -> Generator[Session, None, None]:
+    """
+    获取数据库会话的依赖项
+    使用yield确保会话在使用后正确关闭
+    """
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 @router.post("/register_file")
 async def register_file(req: FileRegisterRequest):
@@ -71,3 +85,17 @@ async def download_file(req: FileDownloadRequest):
             "Content-Disposition": f'attachment; filename="{file_record.file_name}"'
         }
     )
+
+@router.delete("/delete_file/{file_id}")
+def delete_file(file_id: int, db: Session = Depends(get_db)):
+    chunks = db.query(Chunk).filter(Chunk.file_id == file_id).all()
+    for chunk in chunks:
+        try:
+            requests.delete(f"{chunk.node_address}/delete_chunk",
+                            params = {"file_id": file_id, "chunk_index": chunk.chunk_index})
+        except:
+            pass
+    db.query(Chunk).filter(Chunk.file_id == file_id).delete()
+    db.query(File).filter(File.id == file_id).delete()
+    db.commit()
+    return {"status": "deleted", "file_id": file_id}
