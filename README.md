@@ -123,31 +123,6 @@ docker exec -it dfs-mysql \
 
 
 
----
-
-## 🧱 项目架构图
-
-            +---------------------+
-            |     Client CLI      |
-            +----------+----------+
-                       |
-                 Upload/Download
-                       |
-                +------v------+
-                | Metadata API |
-                +------+-------+
-                       |
-       +---------------+----------------+
-       |                                |
-+------v------+                  +------v------+
-|  Scheduler  |  ------->        |   MySQL DB   |
-+------+------+\                 +-------------+
-       |       \______
-       |               \
-+----------v---------+ +---v-------------------+
-| Storage Node A | | Storage Node B ... |
-+--------------------+ +-----------------------+
-
 
 ---
 
@@ -209,3 +184,38 @@ DistributedFileSystem/
 ├── requirements.txt                 # Python 依赖包列表
 ├── README.md                        # 项目说明文件
 └── .gitignore                       # 忽略文件配置
+
+## 📐 项目架构图
+
+```mermaid
+flowchart TD
+
+    subgraph Client[客户端]
+        CLI[CLI 命令行工具]
+        ClientAPI[client_api.py<br>上传/下载逻辑]
+    end
+
+    subgraph MetadataServer[元数据服务]
+        App[app.py<br>FastAPI 主入口]
+        DB[(MySQL 数据库)]
+        FileRoute[file.py<br>文件路由]
+        NodeRoute[node.py<br>节点路由]
+    end
+
+    subgraph Scheduler[调度器]
+        Sched[scheduler.py<br>节点选择/副本恢复]
+    end
+
+    subgraph StorageNodes[存储节点集群]
+        Node1[node.py:9001<br>存储块 + /metrics]
+        Node2[node.py:9002]
+        NodeN[node.py:90xx]
+    end
+
+    %% 交互关系
+    CLI --> ClientAPI
+    ClientAPI -->|上传/下载请求| MetadataServer
+    ClientAPI -->|上传文件块| Scheduler
+    Scheduler --> StorageNodes
+    MetadataServer --> DB
+    StorageNodes <--> MetadataServer
