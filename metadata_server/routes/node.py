@@ -32,4 +32,4 @@ async def unregister_node(address: str):
         else:
             return {"status": "not found"}
     finally:
-        session.close()     
+        session.close()

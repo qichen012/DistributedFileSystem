@@ -1,5 +1,6 @@
 from fastapi import FastAPI, APIRouter,HTTPException,Response
 from pydantic import BaseModel
+from sqlalchemy import func
 from sqlalchemy.orm import sessionmaker, Session
 from metadata_server.db import engine
 from metadata_server.models import File,Chunk
@@ -99,3 +100,20 @@ def delete_file(file_id: int, db: Session = Depends(get_db)):
     db.query(File).filter(File.id == file_id).delete()
     db.commit()
     return {"status": "deleted", "file_id": file_id}
+
+@router.get("/get_chunk_nodes")
+def get_chunk_nodes(file_id: int, chunk_index: int, db: Session = Depends(get_db)):
+    nodes = db.query(Chunk).filter(Chunk.file_id == file_id,
+                                    Chunk.chunk_index == chunk_index).all()
+    return [node.node_address for node in nodes]
+
+
+@router.get("/check_replicas/{file_id}")
+def check_replicas(file_id: int, db: Session = Depends(get_db)):
+    chunks = db.query(Chunk.chunk_index, func.count(Chunk.node_address)).filter(Chunk.file_id == file_id).group_by(Chunk.chunk_index).all()
+    return[{"chunk_index": idx, "replicas": count} for idx, count in chunks]
+
+@router.get("/list_files")
+def list_files(db: Session = Depends(get_db)):
+    files = db.query(File).all()
+    return[{"file_id": f.id, "file_name": f.file_name, "filesize": f.filesize} for f in files]

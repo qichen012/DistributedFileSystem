@@ -1,6 +1,6 @@
 import os
 import requests
-from controller.scheduler import get_next_node
+from controller.scheduler import get_next_node, select_nodes_for_chunk
 from common.utils import log_info, log_error
 
 def split_file(filepath, chunk_size= 1024*1024):
@@ -40,15 +40,14 @@ def upload_chunk(file_id:int, chunk_index:int, chunk_data:bytes, node_url:str):
     resp = requests.post(f"{node_url}/store_chunk",data= data,files=files)
     return resp.json()
 
-def upload_file(filepath, replica: int):
+def upload_file(filepath, replica: int, strategy: str = "round_robin"):
     filesize = os.path.getsize(filepath)
     file_name = os.path.basename(filepath)
     file_id = register_file(file_name, filesize)
     for index, chunk in split_file(filepath):
-        for i in range(replica):
-            node_url = get_next_node()
-            result = upload_chunk(file_id, index,chunk,node_url)
-            register_chunk(file_id, index, node_url)
+        for node in select_nodes_for_chunk(replica, strategy):
+            result = upload_chunk(file_id, index,chunk,node)
+            register_chunk(file_id, index, node)
         print(f"Uploading chunk {index} of file id {file_id}",result)
 
 def download_file(file_id: int,save_path:str):

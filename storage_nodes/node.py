@@ -27,6 +27,14 @@ async def get_chunk(file_id: int ,chunk_index: int):
     file_path = os.path.join(STORAGE_DIR, f"{file_id}_chunk_{chunk_index}")
     return FileResponse(file_path)
 
+@app.get("/chunk_count")
+def chunk_count():
+    """
+    返回当前存储节点上存储的文件块数量
+    """
+    count = len([name for name in os.listdir(STORAGE_DIR) if os.path.isfile(os.path.join(STORAGE_DIR, name))])
+    return {"count": count}
+
 def register_node(port):
     node_address = f"http://localhost:{port}"
     try:
@@ -55,6 +63,12 @@ async def delete_chunk(file_id : int, chunk_index: int):
     if os.path.exists(file_path):
         os.remove(file_path)
     return {"status": "deleted", "file_id": file_id, "chunk_index": chunk_index}
+
+@app.get("/metrics")
+def metries():
+    files = os.listdir(STORAGE_DIR)
+    total_size = sum(os.path.getsize(os.path.join(STORAGE_DIR, f)) for f in files)
+    return {"chunks": len(files), "total_size": total_size}
 
 if __name__ == "__main__":
     port = sys.argv[1] if len(sys.argv) > 1 else "9001"
