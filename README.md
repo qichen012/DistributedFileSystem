@@ -123,7 +123,6 @@ docker exec -it dfs-mysql \
 
 
 
-
 ---
 
 ## 📁 项目结构说明
@@ -185,7 +184,12 @@ DistributedFileSystem/
 ├── README.md                        # 项目说明文件
 └── .gitignore                       # 忽略文件配置
 
-## 📐 项目架构图
+
+```
+
+
+---
+##   📐 项目架构图
 
 ```mermaid
 flowchart TD
@@ -219,3 +223,4 @@ flowchart TD
     Scheduler --> StorageNodes
     MetadataServer --> DB
     StorageNodes <--> MetadataServer
+```
