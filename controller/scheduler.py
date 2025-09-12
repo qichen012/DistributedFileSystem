@@ -48,15 +48,11 @@ STORAGE_NODES = select_nodes_for_chunk()
 
 current_index = 0
 
-
-
 def get_next_node():
     global current_index
     node = STORAGE_NODES[current_index % len(STORAGE_NODES)]
     current_index += 1
     return node
-
-
 
 def get_chunk_count(node_url):
     try:

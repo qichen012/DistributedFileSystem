@@ -2,6 +2,7 @@ import os, requests,sys
 from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.responses import FileResponse
 import atexit
+import aiofiles
 
 app = FastAPI()
 STORAGE_DIR = "./data"
@@ -15,8 +16,8 @@ def health_check():
 async def store_chunk(file_id: int = Form(...), chunk_index: int= Form(...), chunk: UploadFile= File(...)):
     contents = await chunk.read()
     file_path = os.path.join(STORAGE_DIR, f"{file_id}_chunk_{chunk_index}")
-    with open(file_path, "wb") as f:
-        f.write(contents)
+    async with aiofiles.open(file_path, "wb") as f:
+        await f.write(contents)
     return {"status":"success", "file_id":file_id, "chunk_index":chunk_index}
 
 @app.get("/get_chunk/")

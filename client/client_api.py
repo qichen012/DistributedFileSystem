@@ -1,7 +1,8 @@
 import os
-import requests
-from controller.scheduler import get_next_node, select_nodes_for_chunk
+import requests,random
+from controller.scheduler import select_nodes_for_chunk
 from common.utils import log_info, log_error
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def split_file(filepath, chunk_size= 1024*1024):
     with open(filepath, "rb") as f:
@@ -40,12 +41,12 @@ def upload_chunk(file_id:int, chunk_index:int, chunk_data:bytes, node_url:str):
     resp = requests.post(f"{node_url}/store_chunk",data= data,files=files)
     return resp.json()
 
-def upload_file(filepath, replica: int, strategy: str = "round_robin"):
+def upload_file(filepath, replicas: int, strategy: str = "round_robin"):
     filesize = os.path.getsize(filepath)
     file_name = os.path.basename(filepath)
     file_id = register_file(file_name, filesize)
     for index, chunk in split_file(filepath):
-        for node in select_nodes_for_chunk(replica, strategy):
+        for node in select_nodes_for_chunk(replicas, strategy):
             result = upload_chunk(file_id, index,chunk,node)
             register_chunk(file_id, index, node)
         print(f"Uploading chunk {index} of file id {file_id}",result)
@@ -76,6 +77,43 @@ def download_file(file_id: int,save_path:str):
                 raise Exception(f"Chunk {chunks_info[num]['chunk_index']}下载失败")
     print(f"File {file_id} download and saved as {save_path}")
 
+def download_file_parallel(file_id: int, output_path: str, workers: int = 4):
+    resp = requests.get("http://localhost:8000/file/get_chunks", params={"file_id": file_id})
+    chunks_info = resp.json()
+    grouped = {}
+    for c in chunks_info:
+        idx = c["chunk_index"]
+        grouped.setdefault(idx, []).append(c["node_address"])
+    def try_download_chunk(file_id, idx, nodes):
+        random.shuffle(nodes)
+        for node in nodes:
+            try:
+                r = requests.get(f"{node}/get_chunk",
+                                 params={"file_id": file_id, "chunk_index": idx},
+                                 timeout=30)
+                r.raise_for_status()
+                return (idx, r.content)
+            except Exception as e:
+                log_error(f"从节点 {node} 下载块 {idx} 失败: {e}")
+                continue
+        raise Exception(f"所有节点下载块 {idx} 失败")
+    result = []
+    with ThreadPoolExecutor(max_workers= workers) as excutor:
+        future = [excutor.submit(try_download_chunk, file_id, idx, nodes) for idx, nodes in grouped.items()]
+        for f in as_completed(future):
+            try:
+                idx, data = f.result()
+                result.append((idx, data))
+                print(f"successfully download chunk {idx}, size : {len(data)}")
+            except Exception as e:
+                log_error(f"下载失败：{e}")
+    result.sort(key= lambda c : c[0])
+
+    with open(output_path, "wb") as f:
+        for idx, data in result:
+            f.write(data)
+    
+
 def upload_chunk_with_retry(file_id, chunk_index, chunk_data, node_url, retries = 1):
     for attempt in range(retries + 1):
         try:
@@ -94,3 +132,22 @@ def delete_file(file_id : int):
         print(f"文件 {file_id} 删除成功")
     else:
         print(f"删除失败 {resp.text}")
+
+def upload_file_parallel(filepath:str, replicas: int = 2, strategy: str= "round_robin", workers:int = 4):
+    chunks = split_file(filepath)
+    future = []
+    filesize = os.path.getsize(filepath)
+    file_name = os.path.basename(filepath)
+    file_id = register_file(file_name, filesize)
+    with ThreadPoolExecutor(max_workers = workers) as executor:
+        for idx, chunk in chunks:
+            for node in select_nodes_for_chunk(replicas, strategy):
+                future.append(executor.submit(upload_chunk, file_id, idx, chunk, node))
+                register_chunk(file_id, idx, node)
+        for f in as_completed(future):
+            try:
+                result = f.result()
+                log_info(f"上传成功 {result}")
+            except Exception as e:
+                log_error(f"上传失败：{e}")
+

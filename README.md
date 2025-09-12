@@ -39,6 +39,8 @@
 - **监控接口**  
   - 节点提供 `/metrics` 接口，返回存储块数量与空间占用情况。  
 
+- **并行传输**
+  - 支持多线程上传和下载
 ---
 
 ## 🚀 为什么做这个项目？
@@ -164,6 +166,9 @@ DistributedFileSystem/
 │
 ├── controller/                      # 计划中的调度模块
 │   └── scheduler.py                 # 节点调度、负载均衡逻辑
+│ 
+├── logs/                            # 压力测试结果存储
+│   └── bench_time......txt          # 压力测试终端结果反馈
 │
 ├── tests/                           # 测试模块
 │   └── storage_data/                # 测试下载文件存储
@@ -173,13 +178,16 @@ DistributedFileSystem/
 │
 ├── docs/                            # 文档与设计
 │   ├── schema.sql                   # MySQL 表结构定义
+│   ├── week6_summary.md             # 第 6 周总结文档
 │   ├── week5_summary.md             # 第 5 周总结文档
 │   ├── week4_summary.md             # 第 4 周总结文档
 │   ├── week3_summary.md             # 第 3 周总结文档
 │   ├── week2_summary.md             # 第 2 周总结文档
 │   ├── week1_summary.md             # 第 1 周总结文档
-│   └── architecture.drawio          # 架构图
+│   └── architecture.drawio          # 项目架构图
 │
+└── bench_test.sh                    # 压力测试脚本文件
+└── command_time.csv                 # 大文件传输测试结果一览表
 ├── requirements.txt                 # Python 依赖包列表
 ├── README.md                        # 项目说明文件
 └── .gitignore                       # 忽略文件配置
